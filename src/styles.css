@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
@@ -59,6 +60,19 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-console-bg: var(--console-bg);
+  --color-console-panel: var(--console-panel);
+  --color-console-card: var(--console-card);
+  --color-console-border: var(--console-border);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-green: var(--accent-green);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-rose: var(--accent-rose);
+  --color-text-hi: var(--text-hi);
+  --color-text-mu: var(--text-mu);
+  --font-display: "Poppins", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 :root {
@@ -95,6 +109,23 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Mauricio Cloud Console palette */
+  --console-bg: oklch(0.16 0.03 260);
+  --console-panel: oklch(0.22 0.04 260);
+  --console-card: oklch(0.25 0.04 260);
+  --console-border: oklch(0.32 0.04 260);
+  --accent-cyan: oklch(0.78 0.14 220);
+  --accent-green: oklch(0.78 0.18 145);
+  --accent-violet: oklch(0.68 0.20 300);
+  --accent-amber: oklch(0.80 0.16 75);
+  --accent-rose: oklch(0.72 0.18 15);
+  --text-hi: oklch(0.98 0.01 250);
+  --text-mu: oklch(0.72 0.03 255);
+  --shadow-neon-cyan: 0 0 24px color-mix(in oklab, var(--accent-cyan) 45%, transparent), 0 0 64px color-mix(in oklab, var(--accent-cyan) 20%, transparent);
+  --shadow-neon-amber: 0 0 16px color-mix(in oklab, var(--accent-amber) 60%, transparent);
+  --shadow-neon-green: 0 0 18px color-mix(in oklab, var(--accent-green) 50%, transparent);
+  --gradient-console: linear-gradient(135deg, oklch(0.18 0.03 250), oklch(0.22 0.05 280));
 }
 
 .dark {
@@ -138,7 +169,48 @@
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--console-bg);
+    color: var(--text-hi);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
   }
+
+  .font-mono { font-family: var(--font-mono); }
 }
+
+/* Scanline + grid overlay utilities */
+.scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    color-mix(in oklab, var(--accent-cyan) 4%, transparent) 3px,
+    color-mix(in oklab, var(--accent-cyan) 4%, transparent) 4px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+.dot-grid {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in oklab, var(--accent-cyan) 18%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 32px 32px;
+}
+
+@keyframes blink-caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.caret { animation: blink-caret 1s steps(1) infinite; }
+
+@keyframes float-slow { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(30px, -20px); } }
+.float-slow { animation: float-slow 14s ease-in-out infinite; }
+
+@keyframes pulse-soft { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+.pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
+
+::selection { background: color-mix(in oklab, var(--accent-cyan) 40%, transparent); color: var(--text-hi); }
