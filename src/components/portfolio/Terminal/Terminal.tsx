@@ -12,6 +12,7 @@ export function TerminalSection() {
   const [booted, setBooted] = useState(false);
   const [matrix, setMatrix] = useState(false);
   const [typing, setTyping] = useState(false);
+  const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<number | null>(null);
@@ -54,19 +55,55 @@ export function TerminalSection() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [lines]);
 
-  const submit = () => {
+  const typeEcho = (cmd: string): Promise<void> =>
+    new Promise((resolve) => {
+      const prefix = "mauricio@cloud:~$ ";
+      // append empty line we'll fill in
+      setLines((prev) => [...prev, { type: "in", text: prefix }]);
+      let i = 0;
+      const step = () => {
+        i++;
+        setLines((prev) => {
+          const next = prev.slice();
+          next[next.length - 1] = { type: "in", text: prefix + cmd.slice(0, i) };
+          return next;
+        });
+        if (i < cmd.length) {
+          window.setTimeout(step, 18 + Math.random() * 22);
+        } else {
+          resolve();
+        }
+      };
+      if (cmd.length === 0) resolve();
+      else window.setTimeout(step, 40);
+    });
+
+  const submit = async () => {
     const cmd = input;
+    if (busy) return;
     setInput("");
     setHistIdx(-1);
-    setLines((prev) => [...prev, { type: "in", text: `mauricio@cloud:~$ ${cmd}` }]);
+    setBusy(true);
+    await typeEcho(cmd);
+    // thinking placeholder
+    const thinkingLine: Line = { type: "out", text: "__thinking__" };
+    setLines((prev) => [...prev, thinkingLine]);
+    const delay = 220 + Math.min(600, cmd.length * 18);
+    await new Promise((r) => window.setTimeout(r, delay));
     const out = execute(cmd, {
       history,
       pushHistory: (s) => setHistory((h) => [...h, s]),
       setMatrix,
       clear: () => setLines([]),
     });
-    if (out.length === 0 && cmd.trim() === "clear") return;
-    setLines((prev) => [...prev, ...out]);
+    setLines((prev) => {
+      // remove the last thinking placeholder
+      const next = prev.filter((l) => l.text !== "__thinking__");
+      if (out.length === 0 && cmd.trim() === "clear") return next;
+      return [...next, ...out];
+    });
+    setBusy(false);
+    inputRef.current?.focus();
   };
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -113,27 +150,40 @@ export function TerminalSection() {
             onClick={() => inputRef.current?.focus()}
             className="relative z-10 h-[440px] cursor-text overflow-y-auto bg-[color-mix(in_oklab,var(--console-bg)_70%,transparent)] p-5 font-mono text-[13px] leading-relaxed"
           >
-            {lines.map((l, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -4 }}
-                animate={{ opacity: 1, x: 0 }}
-                className={
-                  l.type === "in"
-                    ? "text-[var(--text-hi)]"
-                    : l.type === "ok"
-                      ? "text-[var(--accent-green)]"
-                      : l.type === "err"
-                        ? "text-[var(--accent-rose)]"
-                        : l.type === "ascii"
-                          ? "whitespace-pre text-[var(--accent-amber)]"
-                          : "text-[var(--text-mu)]"
-                }
-              >
-                {l.text || "\u00A0"}
-              </motion.div>
-            ))}
-            <div className="flex items-center gap-2 text-[var(--text-hi)]">
+            {lines.map((l, i) => {
+              if (l.text === "__thinking__") {
+                return (
+                  <div key={i} className="flex items-center gap-1 text-[var(--accent-cyan)]">
+                    <span className="opacity-70">working</span>
+                    <span className="dot-1">.</span>
+                    <span className="dot-2">.</span>
+                    <span className="dot-3">.</span>
+                  </div>
+                );
+              }
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className={
+                    l.type === "in"
+                      ? "text-[var(--text-hi)]"
+                      : l.type === "ok"
+                        ? "text-[var(--accent-green)]"
+                        : l.type === "err"
+                          ? "text-[var(--accent-rose)]"
+                          : l.type === "ascii"
+                            ? "whitespace-pre text-[var(--accent-amber)]"
+                            : "text-[var(--text-mu)]"
+                  }
+                >
+                  {l.text || "\u00A0"}
+                </motion.div>
+              );
+            })}
+            <div className="flex items-center gap-2 text-[var(--text-hi)]" aria-hidden={busy}>
               <span className="text-[var(--accent-green)]">mauricio@cloud</span>
               <span className="text-[var(--text-mu)]">:</span>
               <span className="text-[var(--accent-cyan)]">~</span>
@@ -141,6 +191,7 @@ export function TerminalSection() {
               <input
                 ref={inputRef}
                 value={input}
+                disabled={busy}
                 onChange={(e) => {
                   setInput(e.target.value);
                   setTyping(true);
@@ -149,11 +200,11 @@ export function TerminalSection() {
                 }}
                 onKeyDown={onKey}
                 aria-label="Terminal input"
-                className="flex-1 bg-transparent text-[var(--text-hi)] outline-none"
+                className="flex-1 bg-transparent text-[var(--text-hi)] outline-none disabled:opacity-50"
                 spellCheck={false}
                 autoComplete="off"
               />
-              <span className="caret inline-block h-4 w-2 bg-[var(--accent-green)]" />
+              {!busy && <span className="caret inline-block h-4 w-2 bg-[var(--accent-green)] shadow-[0_0_8px_var(--accent-green)]" />}
             </div>
           </div>
 
